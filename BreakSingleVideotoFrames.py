@@ -21,12 +21,13 @@ def extractFrames(pathOut,filepath):
 
     # Path to video file 
     cap = cv2.VideoCapture(filepath) 
-    cap.set(cv2.CAP_PROP_FPS, 100)   
+    #Reducing the frames per second of the video to 2
+    cap.set(cv2.CAP_PROP_FPS, 2)   
     # Used as counter variable 
     x=1
     frameRate = cap.get(5) #frame rate
-    numberOfPicturesPerSecond= 5
-    #blockBlobService = BlockBlobService(account_name='stworkersafety', account_key='7OyzTj7Y83+0/+DiuS9IVDoZcKrQ0pSjE4F4q8L/ltT+Dv4TbBXTSDrOu928L60SCzo7mq+P3fEv3B4aOL6Flw==')
+    numberOfPicturesPerSecond= 2
+    blockBlobService = BlockBlobService(account_name='stworkersafety', account_key='7OyzTj7Y83+0/+DiuS9IVDoZcKrQ0pSjE4F4q8L/ltT+Dv4TbBXTSDrOu928L60SCzo7mq+P3fEv3B4aOL6Flw==')
     # start creating frames from video
     while(cap.isOpened()):
         frameId = cap.get(1) #current frame number
@@ -40,22 +41,29 @@ def extractFrames(pathOut,filepath):
             # convert frame to PIL image
             frame_conv = cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
             pilImage = Image.fromarray(frame_conv)
+            #Calculate size = Height/2 * Width/2
+            size = (round(pilImage.size[0]/2), round(pilImage.size[1]/2))
+            #Resize using CV2
+            pilImage = pilImage.resize(size, Image.ANTIALIAS)
             imgByteArr = BytesIO()
-            pilImage.save(imgByteArr, format='PNG')
+            pilImage.save(imgByteArr, format='jpeg')
+            #print(type(pilImage))          
             imgByteArr = imgByteArr.getvalue()
+            
             # write image to blob for logging
-            #now = datetime.strftime(datetime.now(), "%Y%m%dT%H%M%S%Z")
-           #imageFileName= 'epm_stage' + "/image" +  str(int(x)) + "_img_" + now + ".png"
-           #imageFileName= 'folder' + "/log/image" +  str(int(x)) + "_img.png"
-           #print(imageFileName)
-           #blockBlobService.create_blob_from_bytes('videoblobiotedge', imageFileName, imgByteArr, timeout=10000)
-            cv2.imwrite(os.path.join(pathOut , "image{:d}.jpg".format(x)),frame)
+            now = datetime.strftime(datetime.now(), "%Y%m%dT%H%M%S%Z")
+            imageFileName= 'epm_stage/image' +  str(int(x)) + "_img_" + now + ".jpg"
+            #imageFileName= 'folder' + "/log/image" +  str(int(x)) + "_img.png"
+            blockBlobService.create_blob_from_bytes('videoblob', imageFileName, imgByteArr)
+            #Write to local directory
+            pilImage.save(os.path.join(pathOut , "image{:d}.jpg".format(x)))
+            #cv2.imwrite(os.path.join(pathOut , "image{:d}.jpeg".format(x)),frame)
          # increment image
-        x+=1
+            x+=1
             
 def uploadtoblob(filepath):
     block_blob_service = BlockBlobService(account_name='stworkersafety', account_key='7OyzTj7Y83+0/+DiuS9IVDoZcKrQ0pSjE4F4q8L/ltT+Dv4TbBXTSDrOu928L60SCzo7mq+P3fEv3B4aOL6Flw==')
-    container_name ='videoblobiotedge\\epm_stage'
+    container_name ='videoblob\\epm_stage'
 
     #local_path = "D:\\Test\\test"
 
@@ -68,11 +76,11 @@ def main():
    #               )
    folder_path = '.\\FramesGenerated\\'
    for file_name in listdir(folder_path):
-           if file_name.endswith('.jpg'):
+           if file_name.endswith('.jpg'):  
                os.remove(folder_path + file_name)
 
    extractFrames('./FramesGenerated' , './Extinguisher.mp4' )
-   uploadtoblob('./FramesGenerated')
+   #uploadtoblob('./FramesGenerated')
 
 if __name__ == '__main__':
     main()
